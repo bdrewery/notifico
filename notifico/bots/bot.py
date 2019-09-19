@@ -26,6 +26,8 @@ class BotificoBot(ProtocolClient):
         self._channels = dict()
 
         signals.on_registered.connect(self.on_ready, sender=self)
+        signals.m.on_NICK.connect(self.on_nick, sender=self)
+        signals.m.on_JOIN.connect(self.on_join, sender=self)
 
     @property
     def ready(self):
@@ -74,6 +76,17 @@ class BotificoBot(ProtocolClient):
             if not channel.joined:
                 channel.join()
 
+    def on_nick(self, client, prefix, target, args):
+        if prefix.nick.lower() == client.identity.nick.lower():
+            client.identity._nick = args[0]
+
+    def on_join(self, client, prefix, target, args):
+        if prefix.nick.lower() == client.identity.nick.lower():
+            name = target
+            if name not in self._channels:
+                self._channels[name] = Channel(self, name)
+                self._channels[name].message_min_delay = self.message_min_delay
+                self._channels[name]._joined.set()
 
 class Channel(object):
     def filter_channel(f):
